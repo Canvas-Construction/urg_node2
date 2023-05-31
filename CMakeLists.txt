@@ -29,9 +29,7 @@ set(URG_LIBRARY_DIR urg_library/current)
 set(URG_LIBRARY_C_INCLUDE_DIR ${URG_LIBRARY_DIR}/include/c)
 set(URG_LIBRARY_SRC_DIR ${URG_LIBRARY_DIR}/src)
 
-include_directories(include ${URG_LIBRARY_C_INCLUDE_DIR})
-
-add_library(urg_c SHARED
+add_library(urg_c STATIC
   ${URG_LIBRARY_SRC_DIR}/urg_sensor.c
   ${URG_LIBRARY_SRC_DIR}/urg_utils.c
   ${URG_LIBRARY_SRC_DIR}/urg_debug.c
@@ -42,27 +40,47 @@ add_library(urg_c SHARED
   ${URG_LIBRARY_SRC_DIR}/urg_tcpclient.c
 )
 
+target_include_directories(urg_c PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${URG_LIBRARY_C_INCLUDE_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+
 if (WIN32)
   target_link_libraries(urg_c Ws2_32.lib Setupapi.lib)
 endif()
 
-add_library(urg_node2 SHARED src/urg_node2.cpp)
+add_library(${PROJECT_NAME} SHARED src/urg_node2.cpp)
 
-target_compile_definitions(urg_node2
-PUBLIC
+if (WIN32)
+  set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
+endif ()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
   $<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES NOMINMAX>
 )
 
-ament_target_dependencies(urg_node2 rclcpp rclcpp_components rclcpp_lifecycle lifecycle_msgs sensor_msgs diagnostic_updater laser_proc)
-rclcpp_components_register_node(urg_node2
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${URG_LIBRARY_C_INCLUDE_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components rclcpp_lifecycle lifecycle_msgs sensor_msgs diagnostic_updater laser_proc)
+rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "urg_node2::UrgNode2"
   EXECUTABLE urg_node2_node)
 target_link_libraries(urg_node2 urg_c)
 
-install(TARGETS
-  urg_node2 urg_c
+file(GLOB URG_HEADER_FILES "${URG_LIBRARY_C_INCLUDE_DIR}/*.h")
+install(FILES ${URG_HEADER_FILES}
+  DESTINATION include/urg_c
+)
+
+install(TARGETS urg_node2 urg_c
+  EXPORT ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY launch config
@@ -87,5 +105,7 @@ endif()
 #  #set(ament_cmake_cpplint_FOUND TRUE)
 #  ament_lint_auto_find_test_dependencies()
 #endif()
+
+ament_export_targets(${PROJECT_NAME})
 
 ament_package()
