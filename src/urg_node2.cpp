@@ -32,7 +32,9 @@ UrgNode2::UrgNode2(const rclcpp::NodeOptions & node_options)
 {
   // urg_open後にLiDARの電源がOFFになった状態でLiDARと通信しようとするとSIGPIPEシグナルが発生する
   // ROS1ではROSのライブラリで設定されていたがROS2では未対応のため、ここで設定する
+#ifndef WIN32
   std::signal(SIGPIPE, SIG_IGN);
+#endif
 
   // パラメータの登録
   ip_address_ = declare_parameter<std::string>("ip_address", "");

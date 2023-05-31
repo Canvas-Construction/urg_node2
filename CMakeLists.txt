@@ -42,7 +42,17 @@ add_library(urg_c SHARED
   ${URG_LIBRARY_SRC_DIR}/urg_tcpclient.c
 )
 
+if (WIN32)
+  target_link_libraries(urg_c Ws2_32.lib Setupapi.lib)
+endif()
+
 add_library(urg_node2 SHARED src/urg_node2.cpp)
+
+target_compile_definitions(urg_node2
+PUBLIC
+  $<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES NOMINMAX>
+)
+
 ament_target_dependencies(urg_node2 rclcpp rclcpp_components rclcpp_lifecycle lifecycle_msgs sensor_msgs diagnostic_updater laser_proc)
 rclcpp_components_register_node(urg_node2
   PLUGIN "urg_node2::UrgNode2"

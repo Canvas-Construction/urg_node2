@@ -44,6 +44,10 @@
 #include "urg_sensor.h"
 #include "urg_utils.h"
 
+#ifdef WIN32
+#  undef ERROR
+#endif
+
 using namespace std::chrono_literals;
 
 /** @def
